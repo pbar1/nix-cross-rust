@@ -46,7 +46,7 @@ git+file:///Users/pierce/code/nix-cross-rust?ref=refs/heads/main&rev=4028098b657
 
 ## Timings
 
-System info:
+### System Info
 
 ```
 ♪ sysctl -a | grep -e machdep\.cpu -e memsize
@@ -59,14 +59,28 @@ machdep.cpu.thread_count: 8
 machdep.cpu.brand_string: Apple M2
 ```
 
-### Initial Build
+### Initial Toolchain Build
 
 Initial cross-compile builds are very slow because almost nothing is cached in
 public Nix caches. Once the first per target platform succeeded though,
 subsequent builds will be fast.
 
+- `aarch64-darwin` (native): omitted
 - `aarch64-darwin` -> `aarch64-linux-musl`: 44m
 - `aarch64-darwin` -> `x86_64-linux-musl`: 44m
+
+### Real Project Clean Build
+
+To test build speed in a real world scenario, I copy-pasted this flake into
+[pbar1/astu](https://github.com/pbar1/astu) and then build it from scratch.
+
+- `aarch64-darwin` (native): 2m44s
+- `aarch64-darwin` -> `aarch64-linux-musl`: 2m53s
+- `aarch64-darwin` -> `x86_64-linux-musl`: 5m20s
+
+Not quite sure why `x86_64-linux-musl` was slower than the other two. I did run
+it first, so maybe the extra time was spent downloading Rust crate sources that
+were then able to be used in the other two builds?
 
 ## Resources
 

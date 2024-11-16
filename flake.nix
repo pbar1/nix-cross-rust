@@ -131,6 +131,13 @@
             strictDeps = true;
             doCheck = false;
 
+            buildInputs =
+              with pkgsCross;
+              [ ]
+              ++ lib.optionals stdenv.isDarwin [
+                darwin.apple_sdk.frameworks.SystemConfiguration
+              ];
+
             CARGO_BUILD_TARGET = rustTarget;
             CARGO_BUILD_RUSTFLAGS = [
               # https://github.com/rust-lang/cargo/issues/4133
@@ -138,8 +145,6 @@
               "linker=${TARGET_CC}"
             ];
 
-            # Required because ring crate is special. This also seems to have
-            # fixed some issues with the x86_64-windows cross-compile :shrug:
             TARGET_CC = "${pkgsCross.stdenv.cc}/bin/${pkgsCross.stdenv.cc.targetPrefix}cc";
 
             OPENSSL_STATIC = "1";
