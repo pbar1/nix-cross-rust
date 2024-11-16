@@ -1,5 +1,5 @@
 {
-  description = "Cross-compile Rust using Nix and Naersk";
+  description = "Nix flake to cross-compile Rust projects";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
