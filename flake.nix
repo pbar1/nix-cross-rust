@@ -92,66 +92,86 @@
         );
     in
     {
-      packages = eachCrossSystem (builtins.attrNames buildTargets) (
-        buildSystem: targetSystem:
-        let
-          pkgs = mkPkgs buildSystem null;
-          pkgsCross = mkPkgs buildSystem targetSystem;
-          rustTarget = buildTargets.${targetSystem}.rustTarget;
-          fenixPkgs = fenix.packages.${buildSystem};
+      packages =
+        eachCrossSystem (builtins.attrNames buildTargets) (
+          buildSystem: targetSystem:
+          let
+            pkgs = mkPkgs buildSystem null;
+            pkgsCross = mkPkgs buildSystem targetSystem;
+            rustTarget = buildTargets.${targetSystem}.rustTarget;
+            fenixPkgs = fenix.packages.${buildSystem};
 
-          mkToolchain =
-            fenixPkgs:
-            fenixPkgs.toolchainOf {
-              channel = "stable";
-              sha256 = "sha256-yMuSb5eQPO/bHv+Bcf/US8LVMbf/G/0MSfiPwBhiPpk=";
-            };
+            mkToolchain =
+              fenixPkgs:
+              fenixPkgs.toolchainOf {
+                channel = "stable";
+                sha256 = "sha256-yMuSb5eQPO/bHv+Bcf/US8LVMbf/G/0MSfiPwBhiPpk=";
+              };
 
-          toolchain = fenixPkgs.combine [
-            (mkToolchain fenixPkgs).rustc
-            (mkToolchain fenixPkgs).cargo
-            (mkToolchain fenixPkgs.targets.${rustTarget}).rust-std
-          ];
-
-          buildPackageAttrs =
-            if builtins.hasAttr "makeBuildPackageAttrs" buildTargets.${targetSystem} then
-              buildTargets.${targetSystem}.makeBuildPackageAttrs pkgsCross
-            else
-              { };
-
-          naersk' = pkgs.callPackage naersk {
-            cargo = toolchain;
-            rustc = toolchain;
-          };
-        in
-        naersk'.buildPackage (
-          buildPackageAttrs
-          // rec {
-            src = ./.;
-            strictDeps = true;
-            doCheck = false;
-
-            buildInputs =
-              with pkgsCross;
-              [ ]
-              ++ lib.optionals stdenv.isDarwin [
-                darwin.apple_sdk.frameworks.SystemConfiguration
-              ];
-
-            CARGO_BUILD_TARGET = rustTarget;
-            CARGO_BUILD_RUSTFLAGS = [
-              # https://github.com/rust-lang/cargo/issues/4133
-              "-C"
-              "linker=${TARGET_CC}"
+            toolchain = fenixPkgs.combine [
+              (mkToolchain fenixPkgs).rustc
+              (mkToolchain fenixPkgs).cargo
+              (mkToolchain fenixPkgs.targets.${rustTarget}).rust-std
             ];
 
-            TARGET_CC = "${pkgsCross.stdenv.cc}/bin/${pkgsCross.stdenv.cc.targetPrefix}cc";
+            buildPackageAttrs =
+              if builtins.hasAttr "makeBuildPackageAttrs" buildTargets.${targetSystem} then
+                buildTargets.${targetSystem}.makeBuildPackageAttrs pkgsCross
+              else
+                { };
 
-            OPENSSL_STATIC = "1";
-            OPENSSL_LIB_DIR = "${pkgsCross.pkgsStatic.openssl.out}/lib";
-            OPENSSL_INCLUDE_DIR = "${pkgsCross.pkgsStatic.openssl.dev}/include";
-          }
+            naersk' = pkgs.callPackage naersk {
+              cargo = toolchain;
+              rustc = toolchain;
+            };
+          in
+          naersk'.buildPackage (
+            buildPackageAttrs
+            // rec {
+              src = ./.;
+              strictDeps = true;
+              doCheck = false;
+
+              buildInputs =
+                with pkgsCross;
+                [ ]
+                ++ lib.optionals stdenv.isDarwin [
+                  darwin.apple_sdk.frameworks.SystemConfiguration
+                ];
+
+              CARGO_BUILD_TARGET = rustTarget;
+              CARGO_BUILD_RUSTFLAGS = [
+                # https://github.com/rust-lang/cargo/issues/4133
+                "-C"
+                "linker=${TARGET_CC}"
+              ];
+
+              TARGET_CC = "${pkgsCross.stdenv.cc}/bin/${pkgsCross.stdenv.cc.targetPrefix}cc";
+
+              OPENSSL_STATIC = "1";
+              OPENSSL_LIB_DIR = "${pkgsCross.pkgsStatic.openssl.out}/lib";
+              OPENSSL_INCLUDE_DIR = "${pkgsCross.pkgsStatic.openssl.dev}/include";
+            }
+          )
         )
-      );
+        // {
+          # FIXME: Refactor cross above to that docker image packages are easier to add
+
+          docker-aarch64 = nixpkgs.legacyPackages."aarch64-darwin".dockerTools.streamLayeredImage {
+            name = "nix-cross-rust";
+            tag = "arm";
+            config = {
+              Entrypoint = [ "${self.packages."aarch64-darwin".cross-aarch64-linux}/bin/nix-cross-rust" ];
+            };
+          };
+
+          docker-x86_64 = nixpkgs.legacyPackages."aarch64-darwin".dockerTools.streamLayeredImage {
+            name = "nix-cross-rust";
+            tag = "intel";
+            config = {
+              Entrypoint = [ "${self.packages."aarch64-darwin".cross-x86_64-linux}/bin/nix-cross-rust" ];
+            };
+          };
+        };
     };
 }
