@@ -30,7 +30,20 @@ git+file:///Users/pierce/code/nix-cross-rust?ref=refs/heads/main&rev=4028098b657
         └───default omitted (use '--all-systems' to show)
 ```
 
+## Timings
+
+### First run
+
+aarch64-darwin -> aarch64-linux-musl: 44m
+aarch64-darwin -> x86_64-linux-musl: 44m
+
 ## Resources
 
 - [Statically Cross-Compiling Rust Projects Using Nix](https://mediocregopher.com/posts/x-compiling-rust-with-nix.gmi)
   - [Flake](https://code.betamike.com/micropelago/domani/src/commit/0ed265db6f349cece70de3c6fabd42dd07e9c589/flake.nix)
+  - Really, go read that post. This flake is almost exactly that, subbing out the Windows bits for Darwin, and with less emphasis on static.
+- [Naersk cross-windows](https://github.com/nix-community/naersk/blob/master/examples/cross-windows/flake.nix)
+- [Nix.dev cross compilation](https://nix.dev/tutorials/cross-compilation.html)
+- Target names
+  - [Nix](https://github.com/NixOS/nixpkgs/blob/master/lib/systems/examples.nix)
+  - [Rust](https://doc.rust-lang.org/nightly/rustc/platform-support.html)
